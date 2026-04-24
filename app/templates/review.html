@@ -29,20 +29,37 @@
     
     <div class="form-group">
         <label for="category">Category:</label>
-        <select id="category" name="category" required>
+        <select id="category_select" required onchange="toggleCustomCategory()">
             {% for category in extracted_data.available_categories %}
             <option value="{{ category }}" {% if category == extracted_data.category %}selected{% endif %}>{{ category }}</option>
             {% endfor %}
+            <option value="Autres">Autres</option>
         </select>
     </div>
+
+    <div class="form-group" id="custom-category-group" style="display: none;">
+        <label for="custom_category">Nouvelle catégorie:</label>
+        <input type="text" id="custom_category" placeholder="Entrer une catégorie personnalisée">
+    </div>
+
+    <input type="hidden" id="category" name="category" value="{{ extracted_data.category }}">
+    <input type="hidden" name="subtotal_before_tax" value="{{ extracted_data.subtotal_before_tax or 0.00 }}">
+    <input type="hidden" name="gst_amount" value="{{ extracted_data.gst_amount or 0.00 }}">
+    <input type="hidden" name="pst_qst_amount" value="{{ extracted_data.pst_qst_amount or 0.00 }}">
+    <input type="hidden" name="tip_amount" value="{{ extracted_data.tip_amount or 0.00 }}">
     
-    <div class="form-group">
+    {# <div class="form-group">
         <label for="budget">Budget:</label>
         <select id="budget" name="budget" required>
             {% for budget in extracted_data.available_budgets %}
             <option value="{{ budget }}" {% if budget == extracted_data.budget %}selected{% endif %}>{{ budget }}</option>
             {% endfor %}
         </select>
+    </div> #}
+
+    <div class="form-group">
+        <label for="province">Province:</label>
+        <input type="text" id="province" name="province" value="{{ extracted_data.province or 'inconnu' }}" required>
     </div>
     
     <input type="hidden" name="source_account" value="{{ extracted_data.source_account }}">
@@ -61,9 +78,33 @@
 
 {% block extra_scripts %}
 <script>
+    function toggleCustomCategory() {
+        const categorySelect = document.getElementById('category_select');
+        const customCategoryGroup = document.getElementById('custom-category-group');
+        const customCategory = document.getElementById('custom_category');
+        if (categorySelect.value === 'Autres') {
+            customCategoryGroup.style.display = 'block';
+            customCategory.required = true;
+        } else {
+            customCategoryGroup.style.display = 'none';
+            customCategory.required = false;
+            customCategory.value = '';
+        }
+    }
+
     function showLoading() {
+        const categorySelect = document.getElementById('category_select');
+        const customCategory = document.getElementById('custom_category');
+        const categoryHidden = document.getElementById('category');
+        if (categorySelect.value === 'Autres') {
+            categoryHidden.value = customCategory.value;
+        } else {
+            categoryHidden.value = categorySelect.value;
+        }
         document.getElementById('loading').classList.add('active');
         document.getElementById('submit-btn').disabled = true;
     }
+
+    toggleCustomCategory();
 </script>
 {% endblock %} 

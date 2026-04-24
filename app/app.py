@@ -105,10 +105,12 @@ async def create_transaction(
     store_name: str = Form(...),
     description: str = Form(...),
     category: str = Form(...),
-    budget: str = Form(...),
+    province: str = Form("inconnu"),
+    # budget: str = Form(...),
     source_account: str = Form(...),
 ):
     try:
+        province = (province or "inconnu").strip() or "inconnu"
         # Create the transaction
         result = await create_transaction_from_data(
             {
@@ -117,7 +119,8 @@ async def create_transaction(
                 "store_name": store_name,
                 "description": description,
                 "category": category,
-                "budget": budget,
+                "province": province,
+                # "budget": budget,
                 "source_account": source_account,
             },
             source_account,

@@ -7,4 +7,5 @@ class ReceiptModel(BaseModel):
     store_name: str
     description: str
     category: str
-    budget: str
+    province: str
+    # budget: str

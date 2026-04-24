@@ -8,7 +8,7 @@ from google import genai
 from .config import get_settings
 from .firefly import (
     create_firefly_transaction,
-    get_firefly_budgets,
+    # get_firefly_budgets,
     get_firefly_categories,
 )
 from .image_utils import process_image
@@ -31,14 +31,12 @@ async def extract_receipt_data(file: UploadFile):
         print("Image processed and encoded to base64")
 
         # Fetch dynamic data from Firefly III
-        print("Fetching categories and budgets...")
+        print("Fetching categories...")
         categories = get_firefly_categories()
-        budgets = get_firefly_budgets()
-        print(
-            f"Found {len(categories) if categories else 0} categories and {len(budgets) if budgets else 0} budgets"
-        )
+        # budgets = get_firefly_budgets()
+        print(f"Found {len(categories) if categories else 0} categories")
 
-        # If we couldn't fetch categories or budgets, use default values
+        # If we couldn't fetch categories, use default values
         if not categories:
             categories = [
                 "Groceries",
@@ -50,20 +48,25 @@ async def extract_receipt_data(file: UploadFile):
             ]
             print("Using default categories due to Firefly III connection issues")
 
-        if not budgets:
-            budgets = ["Monthly", "Weekly", "Other"]
-            print("Using default budgets due to Firefly III connection issues")
+        # if not budgets:
+        #     budgets = ["Monthly", "Weekly", "Other"]
+        #     print("Using default budgets due to Firefly III connection issues")
 
         # Construct the prompt.
         receipt_prompt = (
             "Please analyze the attached receipt image and extract the following details: "
             "1) receipt amount, 2) receipt category (choose from: "
             + ", ".join(categories)
-            + "), "
-            "3) receipt budget (choose from: " + ", ".join(budgets) + "), "
-            "4) destination account (store name) "
-            "5) description of the transaction"
-            "5) date (in YYYY-MM-DD format). Today's date is "
+            + "). "
+            "Choose the most appropriate category by comparing the store type and purchased items with the existing Firefly categories. "
+            "Prefer an existing category when it is relevant. "
+            "Example categories include: Repas et représentation, Déplacement, Fourniture de bureau, Hébergement, Vêtement, Communication, Cosmétique, Santé, Spectacle RnD, Achat matériel, Logiciel et licence. "
+            # "3) receipt budget (choose from: " + ", ".join(budgets) + "), "
+            "3) destination account (store name), "
+            "4) description of the transaction, "
+            "5) date (in YYYY-MM-DD format), "
+            "6) Canadian province where the purchase was made. IMPORTANT: Always return only the official Canadian province or territory abbreviation in uppercase. Examples: QC, ON, NB, NS, PE, NL, MB, SK, AB, BC, YT, NT, NU. If unknown, return 'inconnu'. Do not return the full province name. "
+            "Today's date is "
             + datetime.now().strftime("%Y-%m-%d")
             + ". "
             "Most receipts are from the past few days, so use today's date as a reference point when interpreting dates. "
@@ -119,9 +122,10 @@ async def extract_receipt_data(file: UploadFile):
             "store_name": gemini_response.parsed.store_name,
             "description": gemini_response.parsed.description,
             "category": gemini_response.parsed.category,
-            "budget": gemini_response.parsed.budget,
+            "province": gemini_response.parsed.province,
+            # "budget": gemini_response.parsed.budget,
             "available_categories": categories,
-            "available_budgets": budgets,
+            # "available_budgets": budgets,
         }
         print("Successfully extracted all data")
         return extracted_data
@@ -140,7 +144,8 @@ async def create_transaction_from_data(receipt_data, source_account):
         store_name=receipt_data["store_name"],
         description=receipt_data["description"],
         category=receipt_data["category"],
-        budget=receipt_data["budget"],
+        province=receipt_data.get("province", "inconnu"),
+        # budget=receipt_data["budget"],
     )
 
     # Implement retry logic with exponential backoff
@@ -159,7 +164,8 @@ async def create_transaction_from_data(receipt_data, source_account):
                 print(f"- Amount: {receipt.amount}")
                 print(f"- Store: {receipt.store_name}")
                 print(f"- Category: {receipt.category}")
-                print(f"- Budget: {receipt.budget}")
+                print(f"- Province: {receipt.province}")
+                # print(f"- Budget: {receipt.budget}")
                 print(f"- Source Account: {source_account}")
                 print(f"- Transaction ID: {transaction_result['data']['id']}")
                 return f"Transaction created successfully with ID: {transaction_result['data']['id']}"

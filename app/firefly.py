@@ -93,6 +93,25 @@ def create_firefly_transaction(receipt, source_account="Cash wallet"):
         print(f"Invalid date format: {receipt.date}. Using current date instead.")
         formatted_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
 
+    province = getattr(receipt, "province", None) or "inconnu"
+    province = province.strip()
+    province_tag = f"province:{province}"
+    subtotal = receipt.subtotal_before_tax or 0.00
+    gst = receipt.gst_amount or 0.00
+    pst = receipt.pst_qst_amount or 0.00
+    tip = receipt.tip_amount or 0.00
+
+    if gst == 0 and pst == 0:
+        taxes_info = "Taxes: non détectées"
+    else:
+        taxes_info = (
+            f"Sous-total hors taxes: {subtotal:.2f}\n"
+            f"TPS: {gst:.2f}\n"
+            f"TVQ: {pst:.2f}"
+        )
+
+    notes = (f"{taxes_info}\n" f"Pourboire: {tip:.2f}")
+
     payload = {
         "transactions": [
             {
@@ -103,8 +122,9 @@ def create_firefly_transaction(receipt, source_account="Cash wallet"):
                 "destination_name": receipt.store_name,
                 "source_name": source_account,
                 "category_name": receipt.category,
-                "budget_name": receipt.budget,
-                "tags": ["automated"],
+                "notes": notes,
+                # "budget_name": receipt.budget,
+                "tags": [province_tag],
             }
         ]
     }

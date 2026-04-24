@@ -66,6 +66,12 @@ async def extract_receipt_data(file: UploadFile):
             "4) description of the transaction, "
             "5) date (in YYYY-MM-DD format), "
             "6) Canadian province where the purchase was made. IMPORTANT: Always return only the official Canadian province or territory abbreviation in uppercase. Examples: QC, ON, NB, NS, PE, NL, MB, SK, AB, BC, YT, NT, NU. If unknown, return 'inconnu'. Do not return the full province name. "
+            "Also extract:\n"
+            "- subtotal before tax\n"
+            "- GST (federal tax)\n"
+            "- PST or QST (provincial tax)\n"
+            "- tip amount\n"
+            "Return 0.00 if not present. All values must be numeric. "
             "Today's date is "
             + datetime.now().strftime("%Y-%m-%d")
             + ". "
@@ -123,6 +129,10 @@ async def extract_receipt_data(file: UploadFile):
             "description": gemini_response.parsed.description,
             "category": gemini_response.parsed.category,
             "province": gemini_response.parsed.province,
+            "subtotal_before_tax": gemini_response.parsed.subtotal_before_tax,
+            "gst_amount": gemini_response.parsed.gst_amount,
+            "pst_qst_amount": gemini_response.parsed.pst_qst_amount,
+            "tip_amount": gemini_response.parsed.tip_amount,
             # "budget": gemini_response.parsed.budget,
             "available_categories": categories,
             # "available_budgets": budgets,
@@ -145,6 +155,10 @@ async def create_transaction_from_data(receipt_data, source_account):
         description=receipt_data["description"],
         category=receipt_data["category"],
         province=receipt_data.get("province", "inconnu"),
+        subtotal_before_tax=receipt_data.get("subtotal_before_tax"),
+        gst_amount=receipt_data.get("gst_amount"),
+        pst_qst_amount=receipt_data.get("pst_qst_amount"),
+        tip_amount=receipt_data.get("tip_amount"),
         # budget=receipt_data["budget"],
     )
 
